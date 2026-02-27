@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Case Study 2: Permutations Visualizer</title>
+<style>
+:root{
+  --bg:#f8fafc;
+  --card:#ffffff;
+  --accent:#6366f1;
+  --soft:#ecfeff;
+  --warn:#fff7ed;
+  --ok:#dcfce7;
+  --text:#1f2937;
+  --radius:14px;
+  --fs:15px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto;font-size:var(--fs);color:var(--text);} 
+.wrapper{max-width:1100px;margin:40px auto;padding:20px}
+.visualizer{background:var(--card);border-radius:var(--radius);padding:28px;border:1px solid #e5e7eb;box-shadow:0 10px 40px rgba(0,0,0,0.05);} 
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
+.header h1{font-size:18px;margin:0;}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button{background:var(--accent);border:none;color:white;padding:8px 14px;border-radius:10px;cursor:pointer;font-weight:600;}
+button.secondary{background:white;color:var(--accent);border:1px solid var(--accent);} 
+input{padding:6px 8px;border-radius:8px;border:1px solid #ddd;width:70px}
+.stage{margin-top:20px;display:flex;gap:30px;align-items:stretch;}
+.explanation{flex:1.3;background:var(--soft);padding:22px;border-radius:var(--radius);line-height:1.7;height:520px;overflow-y:auto;}
+.shelf{flex:1;display:flex;flex-direction:column;height:520px;}
+.books{display:flex;gap:8px;margin-top:15px;flex-wrap:wrap}
+.book{width:55px;height:110px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;}
+.c1{background:#ef4444}.c2{background:#f97316}.c3{background:#eab308}.c4{background:#10b981}.c5{background:#06b6d4}.c6{background:#6366f1}.c7{background:#8b5cf6}.c8{background:#0ea5e9}.c9{background:#14b8a6}.c10{background:#f43f5e}
+.result{margin-top:15px;font-weight:700;}
+.progress{margin-top:8px;font-size:13px;color:#475569;}
+ul{padding-left:20px}
+.box-warn{background:var(--warn);padding:12px;border-radius:10px;margin-top:14px;}
+.box-ok{background:var(--ok);padding:12px;border-radius:10px;margin-top:14px;}
+.box-info{background:#ecfeff;border:1px solid #a5f3fc;padding:14px;border-radius:14px;margin-top:12px;}
+.permutation-panel{margin-top:20px;display:flex;flex-direction:column;flex:1;min-height:0;}
+.permutation-list{flex:1;overflow-y:auto;border:1px solid #e5e7eb;border-radius:10px;padding:10px;background:#f9fafb;font-family:monospace;font-size:14px;}
+.permutation-item{padding:4px 0;border-bottom:1px solid #eee;}
+.permutation-item:last-child{border-bottom:none;}
+</style>
+</head>
+<body>
+<div class="wrapper">
+<div class="visualizer">
+<div class="header">
+<h1>Case Study 2: Permutations - Selecting AND Arranging</h1>
+<div class="controls">
+n: <input type="number" id="n" value="10" min="1" max="10">
+k: <input type="number" id="k" value="3" min="1" max="5">
+<button onclick="nextStep()">Next Step</button>
+<button class="secondary" onclick="prevStep()">Previous</button>
+<button class="secondary" onclick="resetAll()">Reset</button>
+</div>
+</div>
+<div class="stage">
+<div class="explanation" id="exp"></div>
+<div class="shelf">
+<div style="font-weight:600">Athletes (Podium Selection)</div>
+<div class="books" id="books"></div>
+<div class="result" id="res"></div>
+<div class="progress" id="prog"></div>
+<div class="permutation-panel">
+<h3>Generated Ordered Selections (Brute Force)</h3>
+<div class="permutation-list" id="list"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+let step=0,idx=0,results=[];
+const exp=document.getElementById('exp');
+const books=document.getElementById('books');
+const res=document.getElementById('res');
+const prog=document.getElementById('prog');
+const list=document.getElementById('list');
+
+function seed(){
+  books.innerHTML='';
+  let n=parseInt(document.getElementById('n').value);
+  for(let i=0;i<n;i++){
+    let b=document.createElement('div');
+    b.className='book c'+((i%10)+1);
+    b.textContent=i+1;
+    books.appendChild(b);
+  }
+}
+
+function P(n,k){
+  let r=1;
+  for(let i=0;i<k;i++) r*=(n-i);
+  return r;
+}
+
+function genOrdered(n,k){
+  let nums=[...Array(n).keys()].map(x=>x+1);
+  results=[];
+  function helper(curr,remaining){
+    if(curr.length===k){
+      results.push([...curr]);
+      return;
+    }
+    for(let i=0;i<remaining.length;i++){
+      let next=[...remaining];
+      let val=next.splice(i,1)[0];
+      helper([...curr,val],next);
+    }
+  }
+  helper([],nums);
+}
+
+function nextStep(){ step++; render(); }
+function prevStep(){ if(step>0){ step--; render(); } }
+
+function render(){
+  let n=parseInt(document.getElementById('n').value);
+  let k=parseInt(document.getElementById('k').value);
+
+  exp.scrollTop=0;
+
+  if(step===0){
+    exp.innerHTML=`
+    <h2>Problem</h2>
+    <p>In how many ways can we select k items from n items AND arrange them in order?</p>
+    <div class="box-info">
+    <strong>Real-World Scenario:</strong><br><br>
+    A running competition has 10 athletes. You need to award 1st place, 2nd place, and 3rd place medals. How many different ways can the podium be filled? This is not just selecting 3 athletes; the order matters because 1st place is different from 2nd place.
+    </div>`;
+  }
+
+  else if(step===1){
+    exp.innerHTML=`
+    <h2>Why Brute Force Fails Badly Here</h2>
+    <p>For this problem, brute force logic gets even more complicated. You must:</p>
+    <ul>
+    <li>Generate all possible combinations of 3 athletes from 10. That is C(10,3) = 120 combinations.</li>
+    <li>For each combination, generate all possible arrangements. That is 3! = 6 arrangements per combination.</li>
+    <li>Count all of them: 120 × 6 = 720.</li>
+    </ul>
+    <p>The algorithm must perform two levels of enumeration. It first enumerates combinations, then enumerates permutations of each combination. This creates a nested loop structure that is hard to implement correctly and slow to execute.</p>
+    <p>More critically, this approach wastes computation. You generate combinations you do not need. You arrange permutations separately when you could calculate both in one step. The brute force approach solves the problem but does unnecessary work along the way.</p>`;
+  }
+
+  else if(step===2){
+    exp.innerHTML=`
+    <div class="box-warn">
+    <p style="margin-top:0;font-weight:600">Brute Force Problems:</p>
+    <ul>
+    <li><strong>Time Complexity:</strong> O(C(n,k) × k!) which grows very quickly. For P(15,4), this is thousands of operations.</li>
+    <li><strong>Space Complexity:</strong> O(C(n,k) × k) to store all the results.</li>
+    <li><strong>Conceptual Problem:</strong> The code mixes combination and permutation logic, making it hard to understand and error-prone.</li>
+    <li><strong>Scalability:</strong> For P(20,5), you generate hundreds of thousands of permutations unnecessarily.</li>
+    </ul>
+    </div>`;
+  }
+
+  else if(step===3){
+    exp.innerHTML=`
+    <h2>Watch Brute Force Ordered Selections</h2>
+    <p>We now physically generate combinations and then permutations of each combination.</p>`;
+    genOrdered(n,k);
+    idx=0;
+    list.innerHTML='';
+    show();
+  }
+
+  else if(step===4){
+    exp.innerHTML=`
+    <h2>The Combinatorics Approach: One Clean Formula</h2>
+    <p>Now here is the elegant mathematical insight. Instead of generating combinations and then permutations, we directly count using the permutation formula: P(n,k) = n! / (n-k)!</p>
+    <p>Why does this formula work? Think about it step by step:</p>
+    <ul>
+    <li>First position (1st place): You have n = ${n} choices.</li>
+    <li>Second position (2nd place): You have n-1 = ${n-1} choices.</li>
+    <li>Third position (3rd place): You have n-2 = ${n-2} choices.</li>
+    </ul>
+    <p>By the multiplication principle, the total is: ${n} × ${n-1} × ${n-2} = ${P(n,k)}. This is exactly what the formula gives us: P(${n},${k}) = ${n}! / (${n-k})!.</p>
+    <p>Notice how this formula captures the entire problem in one expression. We do not generate combinations. We do not generate permutations. We calculate the count directly by multiplying the number of available choices at each position.</p>
+    <div class="box-ok">
+    <strong>Time Complexity:</strong> O(k)<br>
+    <strong>Space Complexity:</strong> O(1)<br>
+    <strong>Real Speedup:</strong> For P(10,3): Brute force does thousands of operations. Combinatorics does 3 multiplications.<br>
+    <strong>Code Clarity:</strong> One simple loop that is easy to understand and verify.
+    </div>`;
+    res.textContent=`Result: ${P(n,k)}`;
+  }
+
+  else if(step===5){
+    exp.innerHTML=`
+    <h2>The Key Insight About Permutations</h2>
+    <p>The permutation formula P(n,k) = n × (n-1) × (n-2) × ... × (n-k+1) directly represents the counting logic. It says: "At the first step, you have n choices. At the second step, you have n-1 choices. And so on for k steps."</p>
+    <p>Brute force tries to enumerate this. Combinatorics recognizes the pattern and calculates the answer immediately. The formula is not magic; it is just a compact way of expressing a counting argument.</p>`;
+  }
+}
+
+function show(){
+  if(idx>=results.length) return;
+  let item=document.createElement('div');
+  item.className='permutation-item';
+  item.textContent=results[idx].join(' - ');
+  list.appendChild(item);
+  list.scrollTop=list.scrollHeight;
+  prog.textContent=`Ordered Selection ${idx+1} / ${results.length}`;
+  idx++;
+  setTimeout(show,150);
+}
+
+function resetAll(){
+  step=0;
+  idx=0;
+  results=[];
+  res.textContent='';
+  prog.textContent='';
+  list.innerHTML='';
+  seed();
+  render();
+}
+
+seed();
+render();
+</script>
+</body>
+</html>
